@@ -1,1 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prisoner's Dilemma Strategies</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 20px;
+        }
+        #canvasContainer {
+            width: 100%;
+            text-align: center;
+        }
+        canvas {
+            max-width: 100%;
+        }
+        .info-button, .simulate-button {
+            margin-top: 10px;
+            padding: 10px 20px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .info-button:hover, .simulate-button:hover {
+            background-color: #0056b3;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 600px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            max-height: 70%;
+            overflow-y: auto;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .input-container {
+            margin-top: 20px;
+        }
+        .input-container input {
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="canvasContainer"></div>
+    <div class="input-container">
+        <label for="roundsInput">Number of Rounds: </label>
+        <input type="number" id="roundsInput" min="1" max="200" value="200">
+        <button class="simulate-button" onclick="startSimulation()">Simulate</button>
+    </div>
+    <button class="info-button" onclick="openModal()">Information</button>
+
+    <div id="infoModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2>Understanding Game Theory</h2>
+            <p>Game Theory is a branch of mathematics and economics that studies strategic interactions where the outcome depends on the actions of all participants.</p>
+            <h3>Key Strategies in the Prisoner's Dilemma</h3>
+            <ul>
+                <li><strong>Always Cooperate (AC):</strong> Always cooperates, regardless of the opponent's actions.
+                    <ul>
+                        <li><strong>Strengths:</strong> In an environment with other cooperative strategies, it can yield high mutual benefits.</li>
+                        <li><strong>Weaknesses:</strong> Easily exploited by defecting strategies.</li>
+                    </ul>
+                </li>
+                <li><strong>Always Defect (AD):</strong> Always defects, regardless of the opponent's actions.
+                    <ul>
+                        <li><strong>Strengths:</strong> It can exploit cooperative strategies to gain maximum benefit.</li>
+                        <li><strong>Weaknesses:</strong> When playing against other defectors, it results in low payoffs for both.</li>
+                    </ul>
+                </li>
+                <li><strong>Tit for Tat (TFT):</strong> Cooperates on the first move, then mimics the opponent's last move.
+                    <ul>
+                        <li><strong>Strengths:</strong> Promotes mutual cooperation and retaliates against defectors, making it a balanced strategy.</li>
+                        <li><strong>Weaknesses:</strong> Can be caught in retaliatory cycles if the opponent defects.</li>
+                    </ul>
+                </li>
+                <li><strong>Tit for Two Tats (TF2T):</strong> Defects only after the opponent defects twice in a row.
+                    <ul>
+                        <li><strong>Strengths:</strong> More forgiving than Tit for Tat, avoiding retaliatory cycles from a single defection.</li>
+                        <li><strong>Weaknesses:</strong> Can be exploited if the opponent defects sporadically.</li>
+                    </ul>
+                </li>
+                <li><strong>Grim Trigger (GT):</strong> Cooperates until the opponent defects once, then defects forever.
+                    <ul>
+                        <li><strong>Strengths:</strong> Strong deterrent against defection, maintaining cooperation if the opponent values long-term gains.</li>
+                        <li><strong>Weaknesses:</strong> Unforgiving and can lead to permanent defection even if the initial defection was a mistake.</li>
+                    </ul>
+                </li>
+                <li><strong>Random (R):</strong> Cooperates or defects randomly.
+                    <ul>
+                        <li><strong>Strengths:</strong> Unpredictable, which can occasionally catch opponents off guard.</li>
+                        <li><strong>Weaknesses:</strong> Inconsistent performance and lacks strategic direction.</li>
+                    </ul>
+                </li>
+            </ul>
+            <h3>Typical Winners and Why</h3>
+            <p><strong>Tit for Tat (TFT):</strong> Often wins due to its balance of cooperation and retaliation. It fosters mutual cooperation and punishes defection without being overly harsh.</p>
+            <p><strong>Tit for Two Tats (TF2T):</strong> Performs well due to its added layer of forgiveness, preventing prolonged retaliatory cycles.</p>
+            <p><strong>Always Defect (AD):</strong> Can dominate in environments with cooperative strategies but typically performs poorly overall.</p>
+            <h3>Why These Strategies Win</h3>
+            <ul>
+                <li><strong>Balance of Cooperation and Retaliation:</strong> Strategies like Tit for Tat strike a balance by cooperating initially and retaliating against defection. This promotes mutual cooperation while deterring consistent defection.</li>
+                <li><strong>Forgiveness:</strong> Strategies that incorporate forgiveness, such as Tit for Two Tats, perform well in environments with noise or occasional mistakes. They prevent prolonged cycles of retaliation.</li>
+                <li><strong>Deterrence:</strong> Strategies like Grim Trigger can deter defection due to their harsh retaliation policy, but they can be too unforgiving in practice.</li>
+                <li><strong>Exploitability:</strong> Always Defect can win by exploiting cooperative strategies but generally results in low payoffs against other defectors.</li>
+            </ul>
+            <h3>Research and Evidence</h3>
+            <p><strong>Robert Axelrod's Tournaments:</strong> Axelrod's tournaments in the 1980s demonstrated the effectiveness of Tit for Tat. Participants submitted strategies to play repeated Prisoner's Dilemma games, and Tit for Tat emerged as a strong performer due to its balance and simplicity.</p>
+            <p><strong>Iterated Games and Evolutionary Stability:</strong> Research shows that in iterated games, strategies that promote cooperation while maintaining the ability to retaliate against defection tend to be evolutionarily stable. They can resist invasions by purely defecting strategies.</p>
+            <h3>Further Reading</h3>
+            <ul>
+                <li><strong>Books and Papers:</strong></li>
+                <li>"The Evolution of Cooperation" by Robert Axelrod</li>
+                <li>"Prisoner's Dilemma" by William Poundstone</li>
+                <li>Research papers on game theory and evolutionary biology</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        let strategies = [
+            { name: 'Tit for Tat', x: 0, y: 0, color: 'green', score: 0, lastChoice: 'C', secondLastChoice: 'C' },
+            { name: 'Tit for Two Tats', x: 0, y: 0, color: 'blue', score: 0, lastChoice: 'C', secondLastChoice: 'C' },
+            { name: 'Always Defect', x: 0, y: 0, color: 'red', score: 0, lastChoice: 'D', secondLastChoice: 'D' },
+            { name: 'Always Cooperate', x: 0, y: 0, color: 'orange', score: 0, lastChoice: 'C', secondLastChoice: 'C' },
+            { name: 'Random', x: 0, y: 0, color: 'purple', score: 0, lastChoice: 'C', secondLastChoice: 'C' },
+            { name: 'Grim Trigger', x: 0, y: 0, color: 'pink', score: 0, lastChoice: 'C', secondLastChoice: 'C' }
+        ];
+        let radius = 200;
+        let rounds = 200;
+        let currentRound = 0;
+        let fontSize = 12;
+
+        function setup() {
+            let canvas = createCanvas(windowWidth * 0.8, windowHeight * 0.7);
+            canvas.parent('canvasContainer');
+            textAlign(CENTER, CENTER);
+            setupStrategies();
+            frameRate(10);
+        }
+
+        function setupStrategies() {
+            let angleStep = TWO_PI / strategies.length;
+            for (let i = 0; i < strategies.length; i++) {
+                let angle = i * angleStep;
+                strategies[i].x = width / 2 + radius * cos(angle);
+                strategies[i].y = height / 2 + radius * sin(angle);
+            }
+        }
+
+        function draw() {
+            background(240);
+            drawNetwork();
+            if (currentRound < rounds) {
+                playRound();
+                currentRound++;
+            } else {
+                displayWinner();
+                noLoop();
+            }
+        }
+
+        function drawNetwork() {
+            stroke(0);
+            strokeWeight(1);
+            for (let i = 0; i < strategies.length; i++) {
+                for (let j = i + 1; j < strategies.length; j++) {
+                    line(strategies[i].x, strategies[i].y, strategies[j].x, strategies[j].y);
+                }
+            }
+
+            for (let strategy of strategies) {
+                fill(strategy.color);
+                ellipse(strategy.x, strategy.y, 50, 50);
+                fill(0);
+                textSize(fontSize);
+                text(strategy.name, strategy.x, strategy.y - 30);
+                text('Score: ' + strategy.score, strategy.x, strategy.y + 30);
+            }
+
+            fill(0);
+            textSize(16);
+            text('Round: ' + currentRound, width / 2, height - 20);
+        }
+
+        function playRound() {
+            for (let i = 0; i < strategies.length; i++) {
+                for (let j = i + 1; j < strategies.length; j++) {
+                    let result = playGame(strategies[i], strategies[j]);
+                    strategies[i].score += result[0];
+                    strategies[j].score += result[1];
+                }
+            }
+        }
+
+        function playGame(strategy1, strategy2) {
+            let choice1 = getChoice(strategy1, strategy2);
+            let choice2 = getChoice(strategy2, strategy1);
+            strategy1.secondLastChoice = strategy1.lastChoice;
+            strategy2.secondLastChoice = strategy2.lastChoice;
+            strategy1.lastChoice = choice1;
+            strategy2.lastChoice = choice2;
+            return getPayoff(choice1, choice2);
+        }
+
+        function getChoice(strategy, opponent) {
+            if (strategy.name === 'Always Cooperate') return 'C';
+            if (strategy.name === 'Always Defect') return 'D';
+            if (strategy.name === 'Tit for Tat') return opponent.lastChoice || 'C';
+            if (strategy.name === 'Tit for Two Tats') return (opponent.lastChoice === 'D' && opponent.secondLastChoice === 'D') ? 'D' : 'C';
+            if (strategy.name === 'Grim Trigger') return opponent.lastChoice === 'D' ? 'D' : 'C';
+            if (strategy.name === 'Random') return random() < 0.5 ? 'C' : 'D';
+            return 'C';
+        }
+
+        function getPayoff(choice1, choice2) {
+            if (choice1 === 'C' && choice2 === 'C') return [3, 3];
+            if (choice1 === 'C' && choice2 === 'D') return [0, 5];
+            if (choice1 === 'D' && choice2 === 'C') return [5, 0];
+            if (choice1 === 'D' && choice2 === 'D') return [1, 1];
+        }
+
+        function displayWinner() {
+            let maxScore = Math.max(...strategies.map(s => s.score));
+            let winners = strategies.filter(s => s.score === maxScore).map(s => s.name).join(', ');
+            fill(0);
+            textSize(20);
+            text('Winner: ' + winners, width / 2, height - 60);
+        }
+
+        function openModal() {
+            document.getElementById('infoModal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('infoModal').style.display = 'none';
+        }
+
+        function startSimulation() {
+            rounds = parseInt(document.getElementById('roundsInput').value) || 200;
+            currentRound = 0;
+            strategies.forEach(strategy => {
+                strategy.score = 0;
+                strategy.lastChoice = 'C';
+                strategy.secondLastChoice = 'C';
+            });
+            loop();
+        }
+    </script>
+</body>
+</html>
 
