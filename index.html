@@ -1,0 +1,504 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Trust or Betray Lab — Cooperation Simulator</title>
+<style>
+  :root{
+    --bg:#06101d;--bg2:#0e1b31;--panel:rgba(255,255,255,.075);--panel2:rgba(255,255,255,.105);--ink:#f5f8ff;--muted:#b8c6df;--faint:#8392ad;
+    --line:rgba(255,255,255,.15);--good:#48e39d;--bad:#ff6478;--warn:#ffd36a;--blue:#72b7ff;--purple:#c79aff;--white:#f4f7ff;
+    --shadow:0 26px 90px rgba(0,0,0,.42);--radius:24px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%;background:radial-gradient(circle at 20% 0%,#25406e 0,#0b172a 44%,#030711 100%);color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;}
+  body{padding:16px;}
+  button,input,select{font:inherit}
+  button{touch-action:manipulation}
+  .app{max-width:1320px;margin:0 auto;display:grid;grid-template-columns:400px 1fr;gap:16px;align-items:start;}
+  .panel{background:linear-gradient(180deg,rgba(255,255,255,.095),rgba(255,255,255,.055));border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);backdrop-filter:blur(16px);overflow:hidden;}
+  .left{position:sticky;top:16px;max-height:calc(100vh - 32px);overflow:auto;}
+  .pad{padding:18px;}
+  h1{font-size:27px;letter-spacing:-.055em;line-height:.96;margin:0 0 8px;}
+  h2{font-size:18px;letter-spacing:-.03em;margin:0;}
+  h3{font-size:12px;text-transform:uppercase;letter-spacing:.15em;color:var(--muted);margin:19px 0 10px;}
+  p{color:var(--muted);line-height:1.45;margin:0 0 12px;}
+  b,strong{color:var(--white)}
+  .liveRule{border:1px solid rgba(72,227,157,.42);background:rgba(72,227,157,.105);border-radius:18px;padding:13px;color:var(--muted);line-height:1.42;margin-top:12px;}
+  .liveRule b{display:block;margin-bottom:4px;color:#eafff4}
+  .steps{display:grid;gap:8px;margin-top:13px;}
+  .step{display:grid;grid-template-columns:28px 1fr;gap:10px;align-items:start;padding:10px;border:1px solid rgba(255,255,255,.1);background:rgba(0,0,0,.15);border-radius:16px;}
+  .num{width:28px;height:28px;border-radius:10px;display:grid;place-items:center;background:rgba(114,183,255,.16);color:var(--blue);font-weight:1000;}
+  .step b{display:block;font-size:14px}.step span{display:block;color:var(--muted);font-size:13px;line-height:1.34;}
+  .scenarioGrid{display:grid;gap:9px;}
+  .scenario{width:100%;text-align:left;border:1px solid var(--line);border-radius:17px;background:rgba(255,255,255,.055);color:var(--ink);padding:12px;cursor:pointer;transition:.14s transform,.14s border-color,.14s background;}
+  .scenario:hover{transform:translateY(-1px);border-color:rgba(114,183,255,.75);background:rgba(114,183,255,.1)}
+  .scenario.selected{border-color:rgba(72,227,157,.92);background:rgba(72,227,157,.13)}
+  .scenario b{display:block;font-size:15px;margin-bottom:4px}.scenario span{display:block;color:var(--muted);font-size:13px;line-height:1.35;}
+  .sliderBox{display:grid;gap:12px;}
+  .slider{border:1px solid rgba(255,255,255,.11);border-radius:17px;background:rgba(0,0,0,.13);padding:12px;}
+  .sliderTop{display:flex;justify-content:space-between;gap:10px;align-items:baseline;margin-bottom:8px;}
+  .sliderTop label{font-weight:850;color:var(--white);font-size:14px}.sliderTop span{font-weight:1000;color:#fff;white-space:nowrap;font-size:13px;}
+  .hint{font-size:12px;color:var(--muted);line-height:1.32;margin-top:6px;}
+  input[type=range]{width:100%;accent-color:var(--good);}
+  .btnRow{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;}
+  .bigBtn{border:0;border-radius:18px;padding:14px 12px;font-weight:1000;cursor:pointer;color:#07101b;box-shadow:0 12px 28px rgba(0,0,0,.27);transition:.12s transform,.12s filter;}
+  .bigBtn:hover{transform:translateY(-1px);filter:brightness(1.04)}.bigBtn:active{transform:translateY(1px)}
+  .reroll{grid-column:1/-1;background:linear-gradient(135deg,var(--good),#a0ffd1);font-size:17px;}.reset{background:linear-gradient(135deg,#d9e8ff,#ffffff)}.random{background:linear-gradient(135deg,#ffd36a,#fff4bf)}
+  .toggle{width:100%;margin-top:10px;border:1px solid var(--line);background:rgba(255,255,255,.08);color:var(--ink);border-radius:16px;padding:12px;font-weight:900;cursor:pointer;}
+  .advanced{display:none}.showAdvanced .advanced{display:block}.showAdvanced .advancedGrid{display:grid}.advancedGrid{display:none;gap:10px;}
+  .checks{display:grid;gap:8px}.check{display:grid;grid-template-columns:22px 1fr;gap:8px;align-items:start;border:1px solid rgba(255,255,255,.1);background:rgba(0,0,0,.12);border-radius:14px;padding:9px;color:var(--muted);font-size:13px;line-height:1.3}.check input{margin-top:2px;accent-color:var(--good)}.check b{color:var(--ink)}
+  .mixGrid{display:grid;gap:8px}.mix{border:1px solid rgba(255,255,255,.1);border-radius:14px;background:rgba(0,0,0,.12);padding:9px}.mixTop{display:flex;justify-content:space-between;gap:8px;font-size:13px;margin-bottom:6px}.mixTop b{font-weight:900}.mixTop span{color:var(--muted);font-weight:800}
+  .topPanel{padding:22px;border-bottom:1px solid var(--line);background:linear-gradient(135deg,rgba(72,227,157,.125),rgba(114,183,255,.085));}
+  .smallCaps{font-size:12px;text-transform:uppercase;letter-spacing:.17em;color:var(--muted);font-weight:1000;margin-bottom:10px;}
+  .winnerName{font-size:clamp(42px,7vw,84px);line-height:.88;font-weight:1000;letter-spacing:-.08em;margin:0 0 12px;}
+  .plainAnswer{font-size:20px;line-height:1.28;color:#e7efff;max-width:850px;margin:0;}
+  .statusLine{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;}
+  .pill{border:1px solid rgba(255,255,255,.14);background:rgba(0,0,0,.16);border-radius:999px;padding:7px 10px;font-size:12px;color:var(--muted);font-weight:800}.pill b{font-weight:1000}
+  .resultGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-top:16px;}
+  .stat{border:1px solid rgba(255,255,255,.13);background:rgba(0,0,0,.17);border-radius:18px;padding:13px;min-height:92px;}
+  .stat b{display:block;font-size:23px;letter-spacing:-.045em;line-height:1.05}.stat span{display:block;color:var(--muted);font-size:12px;line-height:1.32;margin-top:5px;}
+  .why{padding:18px;border-bottom:1px solid var(--line);}.whyList{display:grid;gap:10px;margin:12px 0 0;padding:0;list-style:none}.whyList li{display:grid;grid-template-columns:14px 1fr;gap:10px;align-items:start;color:#e7efff;line-height:1.42}.dot{width:10px;height:10px;border-radius:50%;margin-top:6px;box-shadow:0 0 18px currentColor}
+  .warning{margin-top:14px;border:1px solid rgba(255,211,106,.42);background:rgba(255,211,106,.105);border-radius:18px;padding:13px;color:#edf3ff;line-height:1.42;}
+  .charts{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:18px;}.chartCard{border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.14);border-radius:20px;padding:14px;min-width:0}.chartTitle{display:flex;justify-content:space-between;gap:12px;align-items:baseline;margin-bottom:10px}.chartTitle b{font-size:16px}.chartTitle span{font-size:12px;color:var(--muted)}canvas{width:100%;height:250px;display:block}.full{grid-column:1/-1}.legend{display:flex;flex-wrap:wrap;gap:8px 12px;margin-top:10px;font-size:12px;color:var(--muted)}.legendItem{display:inline-flex;gap:6px;align-items:center}.swatch{width:11px;height:11px;border-radius:4px;display:inline-block}.tiny{font-size:12px;color:var(--muted);line-height:1.35;margin-top:8px}
+  .plainTable{width:100%;border-collapse:collapse;font-size:14px;border-radius:16px;overflow:hidden}.plainTable th,.plainTable td{border-bottom:1px solid rgba(255,255,255,.1);padding:9px;text-align:left}.plainTable th{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em}.plainTable td:nth-child(2),.plainTable td:nth-child(3){font-weight:850}
+  .footerNote{padding:0 18px 18px;color:var(--muted);font-size:13px;line-height:1.45}.footerNote strong{color:var(--white)}
+  @media(max-width:1010px){body{padding:10px}.app{grid-template-columns:1fr}.left{position:relative;top:0;max-height:none}.charts{grid-template-columns:1fr}.resultGrid{grid-template-columns:1fr 1fr}.winnerName{font-size:52px}.plainAnswer{font-size:18px}}
+  @media(max-width:560px){.resultGrid{grid-template-columns:1fr}.btnRow{grid-template-columns:1fr}.reroll{grid-column:auto}}
+</style>
+</head>
+<body>
+<div class="app" id="appRoot">
+  <aside class="panel left">
+    <div class="pad">
+      <h1>Trust or Betray Lab</h1>
+      <p>Explore one plain question: <b>when does trust beat betrayal?</b></p>
+      <div class="liveRule"><b>Change the conditions.</b> Move any control to reshape the situation. <b>Repeat simulation</b> runs the same setup again with fresh random events, so you can see whether the result is stable or just luck.</div>
+      <div class="steps">
+        <div class="step"><div class="num">1</div><div><b>Pick a world</b><span>Start with a ready-made situation.</span></div></div>
+        <div class="step"><div class="num">2</div><div><b>Move one thing</b><span>Watch the result change when one condition changes.</span></div></div>
+        <div class="step"><div class="num">3</div><div><b>Open more controls</b><span>Change the payoffs, mistakes, learning, and starting population.</span></div></div>
+      </div>
+
+      <h3>Worlds</h3>
+      <div class="scenarioGrid" id="scenarioGrid"></div>
+
+      <h3>Main controls</h3>
+      <div class="sliderBox">
+        <div class="slider"><div class="sliderTop"><label for="rounds">How long is the relationship?</label><span id="roundsVal"></span></div><input id="rounds" type="range" min="1" max="180" value="100" step="1"><div class="hint">One meeting rewards grabbing. Many meetings make revenge, memory, and reputation matter.</div></div>
+        <div class="slider"><div class="sliderTop"><label for="temptation">How tempting is betrayal?</label><span id="temptationVal"></span></div><input id="temptation" type="range" min="3.1" max="10" value="5" step="0.1"><div class="hint">The payoff for grabbing while the other person helps.</div></div>
+        <div class="slider"><div class="sliderTop"><label for="noise">How messy is communication?</label><span id="noiseVal"></span></div><input id="noise" type="range" min="0" max="35" value="1" step="1"><div class="hint">Mistakes flip choices. High mess punishes harsh revenge and rewards forgiveness.</div></div>
+      </div>
+
+      <div class="btnRow"><button class="bigBtn reroll" id="rerollBtn">Repeat simulation</button><button class="bigBtn reset" id="resetBtn">Reset</button><button class="bigBtn random" id="randomBtn">Surprise me</button></div>
+      <button class="toggle" id="advancedBtn">Show more controls</button>
+
+      <div class="advanced" id="advancedArea">
+        <h3>Payoff controls</h3>
+        <div class="advancedGrid">
+          <div class="slider"><div class="sliderTop"><label for="reward">Reward for mutual trust</label><span id="rewardVal"></span></div><input id="reward" type="range" min="1.5" max="5" value="3" step="0.1"><div class="hint">How good life is when both help.</div></div>
+          <div class="slider"><div class="sliderTop"><label for="punishment">Score when both betray</label><span id="punishmentVal"></span></div><input id="punishment" type="range" min="-1" max="3" value="1" step="0.1"><div class="hint">If this is low, mutual betrayal is a miserable world.</div></div>
+          <div class="slider"><div class="sliderTop"><label for="sucker">Pain of being exploited</label><span id="suckerVal"></span></div><input id="sucker" type="range" min="-3" max="2" value="0" step="0.1"><div class="hint">What the helper gets when the other person grabs.</div></div>
+        </div>
+
+        <h3>Learning controls</h3>
+        <div class="advancedGrid">
+          <div class="slider"><div class="sliderTop"><label for="generations">Learning cycles</label><span id="generationsVal"></span></div><input id="generations" type="range" min="4" max="80" value="34" step="1"><div class="hint">More cycles give weak behaviours more time to shrink.</div></div>
+          <div class="slider"><div class="sliderTop"><label for="meetings">Encounters per cycle</label><span id="meetingsVal"></span></div><input id="meetings" type="range" min="250" max="5000" value="1600" step="50"><div class="hint">More encounters make the result less jumpy.</div></div>
+          <div class="slider"><div class="sliderTop"><label for="selection">Copy successful people</label><span id="selectionVal"></span></div><input id="selection" type="range" min="0.1" max="2.8" value="1" step="0.1"><div class="hint">Higher means winners spread faster.</div></div>
+          <div class="slider"><div class="sliderTop"><label for="mutation">New ideas / outsiders</label><span id="mutationVal"></span></div><input id="mutation" type="range" min="0" max="10" value="1" step="0.1"><div class="hint">Stops one behaviour from completely wiping out the others.</div></div>
+          <div class="slider"><div class="sliderTop"><label for="forgiveness">Forgiveness level</label><span id="forgivenessVal"></span></div><input id="forgiveness" type="range" min="0" max="100" value="45" step="1"><div class="hint">Only changes the Forgiver behaviour. Useful in messy worlds.</div></div>
+        </div>
+
+        <h3>Players in the world</h3>
+        <div class="checks" id="strategyChecks"></div>
+
+        <h3>Starting population mix</h3>
+        <div class="mixGrid" id="mixGrid"></div>
+      </div>
+    </div>
+  </aside>
+
+  <main class="panel right">
+    <section class="topPanel">
+      <div class="smallCaps">Final survivor</div>
+      <div class="winnerName" id="winnerName">Loading</div>
+      <p class="plainAnswer" id="plainAnswer">Choose a world or move a control to see what survives.</p>
+      <div class="statusLine">
+        <span class="pill">Controls: <b id="modePill">instant</b></span>
+        <span class="pill">Simulation: <b id="rollPill">1</b></span>
+        <span class="pill">Stability: <b id="stabilityPill">—</b></span>
+        <span class="pill">Changed: <b id="changedPill">start</b></span>
+      </div>
+      <div class="resultGrid">
+        <div class="stat"><b id="worldVerdict">—</b><span>Plain result</span></div>
+        <div class="stat"><b id="trustRate">—</b><span>How often people helped by the end</span></div>
+        <div class="stat"><b id="quickWinner">—</b><span>Who made the best early payday</span></div>
+        <div class="stat"><b id="runnerUp">—</b><span>Second-place survivor</span></div>
+      </div>
+    </section>
+
+    <section class="why">
+      <h2>Why did that happen?</h2>
+      <ul class="whyList" id="whyList"></ul>
+      <div class="warning" id="grabberWarning"><b>Grabber warning:</b> cheating can win the early payday but still fail later if it kills the supply of easy victims and triggers retaliation.</div>
+    </section>
+
+    <section class="charts">
+      <div class="chartCard"><div class="chartTitle"><b>Population after learning</b><span>bigger means survived</span></div><canvas id="popChart"></canvas><div class="legend" id="popLegend"></div></div>
+      <div class="chartCard"><div class="chartTitle"><b>Trust over time</b><span>helping vs grabbing</span></div><canvas id="trustChart"></canvas><div class="tiny">This is the simple learning graph: rising trust means cooperation is spreading.</div></div>
+      <div class="chartCard full"><div class="chartTitle"><b>Behaviour scores now</b><span>how much each earns in the final world</span></div><canvas id="scoreChart"></canvas><div class="legend" id="scoreLegend"></div></div>
+      <div class="chartCard full advanced"><div class="chartTitle"><b>Strategy table</b><span>final population, final score, and early score</span></div><div id="tableBox"></div><div class="tiny">A behaviour can earn well early and still disappear if it destroys the conditions it needs.</div></div>
+    </section>
+    <div class="footerNote"><strong>Meaning:</strong> this is a simplified model, not a crystal ball. Change one condition at a time to see when trust, punishment, forgiveness, or betrayal becomes more successful.</div>
+  </main>
+</div>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const root = $('appRoot');
+  const strategyInfo = [
+    {id:'copycat', name:'Kind Copycat', color:'#48e39d', desc:'Starts helpful, then copies the other person.'},
+    {id:'grabber', name:'Grabber', color:'#ff6478', desc:'Always grabs. Great against fools; weak when others retaliate.'},
+    {id:'friendly', name:'Friendly Fool', color:'#ffd36a', desc:'Always helps. Kind, but easy to exploit.'},
+    {id:'grudge', name:'Grudge Holder', color:'#c79aff', desc:'Helps until betrayed once, then never trusts again.'},
+    {id:'forgiver', name:'Forgiver', color:'#72b7ff', desc:'Copies betrayal, but sometimes repairs trust.'},
+    {id:'pavlov', name:'Win-Stay Learner', color:'#ff9f6e', desc:'Repeats what worked; changes after a bad outcome.'},
+    {id:'tester', name:'Chancer', color:'#9ef0ff', desc:'Tests betrayal, then adapts if punished.'},
+    {id:'random', name:'Coin Toss', color:'#e7ecfb', desc:'Randomly helps or grabs. Useful as background chaos.'}
+  ];
+  const scenarios = [
+    {id:'oneoff', name:'One-off deal', desc:'Meet once. No future revenge.', rounds:1, temptation:5.6, noise:0, reward:3, punishment:1, sucker:0, generations:18, meetings:1200, selection:1.25, mutation:1, forgiveness:35, mix:{copycat:18,grabber:26,friendly:18,grudge:12,forgiver:12,pavlov:8,tester:4,random:2}},
+    {id:'friendship', name:'Long friendship', desc:'Repeated meetings. Memory matters.', rounds:110, temptation:5, noise:1, reward:3, punishment:1, sucker:0, generations:38, meetings:1600, selection:1, mutation:1, forgiveness:45, mix:{copycat:20,grabber:16,friendly:12,grudge:14,forgiver:18,pavlov:12,tester:5,random:3}},
+    {id:'messy', name:'Messy workplace', desc:'Mistakes happen. Forgiveness matters.', rounds:75, temptation:5.4, noise:14, reward:3, punishment:1, sucker:0, generations:40, meetings:1700, selection:.9, mutation:1.4, forgiveness:70, mix:{copycat:18,grabber:16,friendly:9,grudge:18,forgiver:23,pavlov:9,tester:4,random:3}},
+    {id:'pricewar', name:'Price war', desc:'Undercutting is tempting.', rounds:55, temptation:8.2, noise:3, reward:3, punishment:.8, sucker:-.3, generations:42, meetings:1800, selection:1.15, mutation:1, forgiveness:40, mix:{copycat:16,grabber:22,friendly:8,grudge:14,forgiver:16,pavlov:12,tester:9,random:3}},
+    {id:'fragile', name:'Fragile trust', desc:'High temptation plus bad signals.', rounds:45, temptation:8.7, noise:20, reward:3, punishment:.8, sucker:-.8, generations:44, meetings:1800, selection:1.2, mutation:1.8, forgiveness:65, mix:{copycat:16,grabber:24,friendly:6,grudge:16,forgiver:18,pavlov:10,tester:7,random:3}},
+    {id:'repair', name:'Rebuilding trust', desc:'People can forgive after mess.', rounds:95, temptation:5.8, noise:10, reward:3.4, punishment:.7, sucker:-.2, generations:45, meetings:1900, selection:.85, mutation:2, forgiveness:82, mix:{copycat:16,grabber:16,friendly:8,grudge:12,forgiver:26,pavlov:12,tester:6,random:4}}
+  ];
+  const inputs = {
+    rounds:$('rounds'), temptation:$('temptation'), noise:$('noise'), reward:$('reward'), punishment:$('punishment'), sucker:$('sucker'), generations:$('generations'), meetings:$('meetings'), selection:$('selection'), mutation:$('mutation'), forgiveness:$('forgiveness')
+  };
+  let selectedScenario = 'friendship';
+  let active = new Set(strategyInfo.map(s=>s.id));
+  let mixValues = {copycat:20,grabber:16,friendly:12,grudge:14,forgiver:18,pavlov:12,tester:5,random:3};
+  let roll = 1;
+  let lastChanged = 'start';
+  let lastResult = null;
+  let debounce = null;
+
+  function seededRandom(seed){
+    let s = seed >>> 0;
+    return function(){
+      s += 0x6D2B79F5;
+      let t = s;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function fmt(n,d=1){ return Number(n).toLocaleString(undefined,{maximumFractionDigits:d}); }
+  function pct(n){ return Math.round(n*100) + '%'; }
+  function clamp(n,min,max){ return Math.max(min,Math.min(max,n)); }
+  function weightedSeed(){
+    let s = roll * 2654435761;
+    Object.values(inputs).forEach(inp => { s ^= Math.floor(Number(inp.value)*1000) + 0x9e3779b9 + (s<<6) + (s>>>2); });
+    strategyInfo.forEach(st => { s ^= ((mixValues[st.id]||0)*1009) + (active.has(st.id)?7717:31); });
+    return s >>> 0;
+  }
+  function changeLabel(reason){
+    const labels = {
+      rounds:'relationship length', temptation:'betrayal temptation', noise:'communication mess', reward:'mutual trust reward', punishment:'both betray score', sucker:'exploitation pain', generations:'learning cycles', meetings:'encounters per cycle', selection:'copying strength', mutation:'new ideas', forgiveness:'forgiveness', 'players changed':'players', 'starting mix':'starting mix', 'repeat simulation':'same setup repeated', 'surprise world':'surprise world', friendship:'long friendship', oneoff:'one-off deal', messy:'messy workplace', pricewar:'price war', fragile:'fragile trust', repair:'rebuilding trust'
+    };
+    return labels[reason] || reason || 'setup';
+  }
+
+  function scheduleRun(reason){
+    lastChanged = reason || 'control';
+    updateLabels();
+    $('changedPill').textContent = lastChanged;
+    clearTimeout(debounce);
+    debounce = setTimeout(runLive, 80);
+  }
+  function runLive(){
+    lastResult = runSimulation(currentCfg());
+    render(lastResult);
+  }
+  function buildScenarios(){
+    const box = $('scenarioGrid'); box.innerHTML = '';
+    scenarios.forEach(sc=>{
+      const b = document.createElement('button');
+      b.className = 'scenario' + (sc.id === selectedScenario ? ' selected' : '');
+      b.innerHTML = `<b>${sc.name}</b><span>${sc.desc}</span>`;
+      b.addEventListener('click',()=>applyScenario(sc.id));
+      box.appendChild(b);
+    });
+  }
+  function buildChecks(){
+    const box = $('strategyChecks'); box.innerHTML = '';
+    strategyInfo.forEach(st=>{
+      const label = document.createElement('label'); label.className = 'check';
+      label.innerHTML = `<input type="checkbox" ${active.has(st.id)?'checked':''} data-id="${st.id}"><span><b style="color:${st.color}">${st.name}</b><br>${st.desc}</span>`;
+      box.appendChild(label);
+    });
+    box.querySelectorAll('input').forEach(ch=>ch.addEventListener('change',e=>{
+      const id = e.target.dataset.id;
+      if(e.target.checked) active.add(id); else active.delete(id);
+      if(active.size < 2){ active.add(id); e.target.checked = true; alert('Keep at least two behaviours, otherwise there is no contest.'); return; }
+      selectedScenario = ''; buildScenarios(); scheduleRun('players changed');
+    }));
+  }
+  function buildMix(){
+    const box = $('mixGrid'); box.innerHTML = '';
+    strategyInfo.forEach(st=>{
+      const div = document.createElement('div'); div.className = 'mix';
+      div.innerHTML = `<div class="mixTop"><b style="color:${st.color}">${st.name}</b><span id="mixVal_${st.id}"></span></div><input type="range" min="0" max="40" value="${mixValues[st.id]||0}" step="1" data-mix="${st.id}">`;
+      box.appendChild(div);
+    });
+    box.querySelectorAll('input').forEach(inp=>inp.addEventListener('input',e=>{
+      mixValues[e.target.dataset.mix] = Number(e.target.value);
+      selectedScenario=''; buildScenarios(); updateMixLabels(); scheduleRun('starting mix');
+    }));
+    updateMixLabels();
+  }
+  function updateMixLabels(){
+    const total = strategyInfo.reduce((a,st)=>a + (active.has(st.id) ? Number(mixValues[st.id]||0) : 0),0) || 1;
+    strategyInfo.forEach(st=>{
+      const el = $('mixVal_'+st.id);
+      if(el) el.textContent = active.has(st.id) ? pct((mixValues[st.id]||0)/total) : 'off';
+    });
+  }
+  function applyScenario(id){
+    const sc = scenarios.find(x=>x.id===id) || scenarios[1];
+    selectedScenario = id;
+    Object.keys(inputs).forEach(k=>{ if(sc[k] !== undefined) inputs[k].value = sc[k]; });
+    mixValues = Object.assign({}, sc.mix);
+    roll = 1;
+    buildScenarios(); buildMix(); updateLabels(); scheduleRun(sc.name);
+  }
+  function randomWorld(){
+    selectedScenario = '';
+    inputs.rounds.value = Math.round(1 + Math.random()*179);
+    inputs.temptation.value = (3.1 + Math.random()*6.9).toFixed(1);
+    inputs.noise.value = Math.round(Math.random()*35);
+    inputs.reward.value = (1.8 + Math.random()*3.2).toFixed(1);
+    inputs.punishment.value = (-0.5 + Math.random()*3.0).toFixed(1);
+    inputs.sucker.value = (-2.5 + Math.random()*4.2).toFixed(1);
+    inputs.generations.value = Math.round(8 + Math.random()*68);
+    inputs.meetings.value = Math.round((400 + Math.random()*4200)/50)*50;
+    inputs.selection.value = (0.3 + Math.random()*2.1).toFixed(1);
+    inputs.mutation.value = (Math.random()*6).toFixed(1);
+    inputs.forgiveness.value = Math.round(Math.random()*100);
+    strategyInfo.forEach(st=>{ mixValues[st.id] = Math.round(Math.random()*30); });
+    roll++;
+    buildScenarios(); buildMix(); scheduleRun('surprise world');
+  }
+  function updateLabels(){
+    $('roundsVal').textContent = inputs.rounds.value + (Number(inputs.rounds.value)===1?' meeting':' meetings');
+    $('temptationVal').textContent = fmt(inputs.temptation.value) + ' prize';
+    $('noiseVal').textContent = inputs.noise.value + '% messy';
+    $('rewardVal').textContent = fmt(inputs.reward.value) + ' points';
+    $('punishmentVal').textContent = fmt(inputs.punishment.value) + ' points';
+    $('suckerVal').textContent = fmt(inputs.sucker.value) + ' points';
+    $('generationsVal').textContent = inputs.generations.value + ' cycles';
+    $('meetingsVal').textContent = fmt(inputs.meetings.value,0);
+    $('selectionVal').textContent = fmt(inputs.selection.value) + 'x';
+    $('mutationVal').textContent = fmt(inputs.mutation.value) + '%';
+    $('forgivenessVal').textContent = inputs.forgiveness.value + '%';
+    $('rollPill').textContent = roll;
+    updateMixLabels();
+  }
+  function currentCfg(){
+    return {
+      rounds:Number(inputs.rounds.value), temptation:Number(inputs.temptation.value), noise:Number(inputs.noise.value), reward:Number(inputs.reward.value), punishment:Number(inputs.punishment.value), sucker:Number(inputs.sucker.value), generations:Number(inputs.generations.value), meetings:Number(inputs.meetings.value), selection:Number(inputs.selection.value), mutation:Number(inputs.mutation.value)/100, forgiveness:Number(inputs.forgiveness.value)/100, seed:weightedSeed(), roll
+    };
+  }
+  function payoff(a,b,cfg){
+    if(a==='C' && b==='C') return [cfg.reward,cfg.reward];
+    if(a==='D' && b==='C') return [cfg.temptation,cfg.sucker];
+    if(a==='C' && b==='D') return [cfg.sucker,cfg.temptation];
+    return [cfg.punishment,cfg.punishment];
+  }
+  function choose(strategy, mem, cfg, rng){
+    const them = mem.them, me = mem.me;
+    const lastThem = them.length ? them[them.length-1] : 'C';
+    const lastMe = me.length ? me[me.length-1] : 'C';
+    const lastPay = mem.pay.length ? mem.pay[mem.pay.length-1] : cfg.reward;
+    if(strategy.id === 'friendly') return 'C';
+    if(strategy.id === 'grabber') return 'D';
+    if(strategy.id === 'random') return rng() < .5 ? 'C':'D';
+    if(strategy.id === 'copycat') return them.length ? lastThem : 'C';
+    if(strategy.id === 'grudge') return them.includes('D') ? 'D':'C';
+    if(strategy.id === 'forgiver'){
+      if(!them.length) return 'C';
+      if(lastThem === 'C') return 'C';
+      const recentD = them.slice(-3).filter(x=>x==='D').length;
+      const forgive = cfg.forgiveness * (recentD === 1 ? 1 : recentD === 2 ? .45 : .12);
+      return rng() < forgive ? 'C':'D';
+    }
+    if(strategy.id === 'pavlov'){
+      if(!them.length) return 'C';
+      const goodEnough = lastPay >= cfg.reward - .15;
+      return goodEnough ? lastMe : (lastMe === 'C' ? 'D':'C');
+    }
+    if(strategy.id === 'tester'){
+      if(me.length === 0) return 'D';
+      if(me.length === 1) return lastThem === 'D' ? 'C':'D';
+      if(them.slice(-2).every(x=>x==='C') && rng()<.16) return 'D';
+      return lastThem;
+    }
+    return 'C';
+  }
+  function playMatch(A,B,cfg,rng){
+    const memA={me:[],them:[],pay:[]}, memB={me:[],them:[],pay:[]};
+    let scoreA=0, scoreB=0, helps=0, acts=0;
+    const noise = cfg.noise/100;
+    for(let r=0;r<cfg.rounds;r++){
+      let a = choose(A,memA,cfg,rng), b = choose(B,memB,cfg,rng);
+      if(rng()<noise) a = a === 'C' ? 'D':'C';
+      if(rng()<noise) b = b === 'C' ? 'D':'C';
+      const p = payoff(a,b,cfg);
+      scoreA += p[0]; scoreB += p[1]; helps += (a==='C') + (b==='C'); acts += 2;
+      memA.me.push(a); memA.them.push(b); memA.pay.push(p[0]);
+      memB.me.push(b); memB.them.push(a); memB.pay.push(p[1]);
+    }
+    return {scoreA:scoreA/cfg.rounds, scoreB:scoreB/cfg.rounds, trust:helps/acts};
+  }
+  function initialPopulation(strategies){
+    const raw = strategies.map(s=> active.has(s.id) ? Number(mixValues[s.id]||0) : 0);
+    let total = raw.reduce((a,b)=>a+b,0);
+    if(total <= 0){ return strategies.map(()=>1/strategies.length); }
+    return raw.map(x=>x/total);
+  }
+  function pickIndex(weights,rng){
+    let x = rng(), s = 0;
+    for(let i=0;i<weights.length;i++){ s += weights[i]; if(x <= s) return i; }
+    return weights.length-1;
+  }
+  function runSimulation(cfg){
+    const strategies = strategyInfo.filter(s=>active.has(s.id));
+    const n = strategies.length;
+    let pop = initialPopulation(strategies);
+    const rng = seededRandom(cfg.seed || 12345);
+    const history = [];
+    let quickAvg = null;
+    for(let g=0; g<cfg.generations; g++){
+      const pay = Array(n).fill(0), count = Array(n).fill(0);
+      let trust = 0;
+      for(let m=0; m<cfg.meetings; m++){
+        const i = pickIndex(pop,rng), j = pickIndex(pop,rng);
+        const res = playMatch(strategies[i],strategies[j],cfg,rng);
+        pay[i] += res.scoreA; count[i]++; pay[j] += res.scoreB; count[j]++;
+        trust += res.trust;
+      }
+      const avg = pay.map((p,i)=> count[i] ? p/count[i] : 0);
+      if(g===0) quickAvg = avg.slice();
+      const mean = avg.reduce((a,b)=>a+b,0)/Math.max(1,n);
+      let raw = pop.map((p,i)=> p * Math.exp(cfg.selection * (avg[i] - mean)) + 0.0008);
+      let total = raw.reduce((a,b)=>a+b,0);
+      pop = raw.map(x=>x/total);
+      if(cfg.mutation > 0){
+        pop = pop.map(p => p*(1-cfg.mutation) + cfg.mutation/n);
+        total = pop.reduce((a,b)=>a+b,0); pop = pop.map(x=>x/total);
+      }
+      history.push({generation:g+1,pop:pop.slice(),avg:avg.slice(),trust:trust/cfg.meetings});
+    }
+    const final = history[history.length-1];
+    const ranking = strategies.map((s,i)=>({name:s.name,id:s.id,color:s.color,pop:final.pop[i],avg:final.avg[i],quick:quickAvg[i]})).sort((a,b)=>b.pop-a.pop);
+    const quickWinner = strategies.map((s,i)=>({name:s.name,quick:quickAvg[i],color:s.color})).sort((a,b)=>b.quick-a.quick)[0];
+    return {cfg,strategies,history,ranking,quickWinner,final};
+  }
+  function verdict(result){
+    const top = result.ranking[0], trust = result.final.trust;
+    if(top.name === 'Grabber' && trust < .32) return 'Betrayal wins';
+    if(trust >= .68) return 'Trust survives';
+    if(trust >= .40) return 'Mixed world';
+    return 'Low-trust world';
+  }
+  function stability(result){
+    const top = result.ranking[0], second = result.ranking[1];
+    const gap = top.pop - (second ? second.pop : 0);
+    if(gap > .28) return 'strong';
+    if(gap > .12) return 'medium';
+    return 'sensitive';
+  }
+  function explain(result){
+    const cfg = result.cfg, top = result.ranking[0], second = result.ranking[1], quick = result.quickWinner;
+    const lines=[];
+    if(cfg.rounds <= 3) lines.push('This is almost a one-off deal, so revenge is weak. The future cannot discipline the present.');
+    else if(cfg.rounds >= 85) lines.push('The relationship lasts a long time, so memory has teeth. A betrayal can be punished later.');
+    else lines.push('The relationship has a future, but not an endless one. Short-term gain and later punishment are both active.');
+    if(cfg.temptation > cfg.reward + 3) lines.push('Betrayal pays much more than mutual trust, so cooperative strategies need strong memory or punishment to survive.');
+    else if(cfg.temptation <= cfg.reward + 1.2) lines.push('The betrayal prize is not wildly bigger than mutual trust, so cooperation has breathing room.');
+    else lines.push('Betrayal is tempting, but not automatically decisive. The social pattern decides whether it spreads.');
+    if(cfg.noise >= 15) lines.push('The world is messy. Harsh revenge can punish accidents, which often helps forgiving behaviour.');
+    else if(cfg.noise === 0) lines.push('There are no accidental mistakes. Punishment is clean because betrayal really means betrayal.');
+    else lines.push('There are only a few mistakes, so copy-and-remember strategies can still work.');
+    if(quick.name === 'Grabber' && top.name !== 'Grabber') lines.push('Grabber wins the early payday but not the final population. That means exploitation worked until the easy victims shrank.');
+    else if(top.name === 'Grabber') lines.push('Grabber survives, not just scores early. In this setup, the world cannot defend trust strongly enough.');
+    else lines.push(`${top.name} survives ahead of ${second ? second.name : 'the others'} because it gets enough benefit from trust without being completely helpless against betrayal.`);
+    return lines;
+  }
+  function render(result){
+    const top = result.ranking[0], second = result.ranking[1], quick = result.quickWinner;
+    $('winnerName').textContent = top.name;
+    $('worldVerdict').textContent = verdict(result);
+    $('trustRate').textContent = pct(result.final.trust);
+    $('quickWinner').textContent = quick.name;
+    $('runnerUp').textContent = second ? second.name : '—';
+    $('stabilityPill').textContent = stability(result);
+    $('rollPill').textContent = result.cfg.roll;
+    const isGrabber = top.name === 'Grabber';
+    const quickGrab = quick.name === 'Grabber' && top.name !== 'Grabber';
+    let msg = '';
+    if(isGrabber) msg = '<strong>Betrayal really wins here.</strong> The setup is too short, too tempting, too messy, or too weak at punishing betrayal.';
+    else if(quickGrab) msg = '<strong>Grabber gets the quick payday, but does not rule the final world.</strong> Once fools shrink and others remember, trust can recover.';
+    else msg = `<strong>${top.name} wins after learning.</strong> This setup rewards trust with memory, not blind niceness.`;
+    $('plainAnswer').innerHTML = msg;
+    $('whyList').innerHTML = explain(result).map((x,i)=>`<li><span class="dot" style="background:${i===0?'var(--good)':i===1?'var(--blue)':i===2?'var(--warn)':'var(--bad)'}"></span><span>${x}</span></li>`).join('');
+    $('grabberWarning').style.display = (quick.name === 'Grabber') ? 'block':'none';
+    drawPopulation(result); drawTrust(result); drawScores(result); drawTable(result);
+  }
+  function prepCanvas(canvas){
+    const dpr = Math.min(window.devicePixelRatio||1,2);
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = Math.max(360,Math.floor(rect.width*dpr)); canvas.height = Math.max(220,Math.floor(250*dpr));
+    const ctx = canvas.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); return {ctx,w:canvas.width/dpr,h:canvas.height/dpr};
+  }
+  function clear(ctx,w,h){ ctx.clearRect(0,0,w,h); ctx.fillStyle='rgba(255,255,255,.035)'; ctx.fillRect(0,0,w,h); }
+  function roundRect(ctx,x,y,w,h,r){ const rr=Math.min(r,w/2,h/2); ctx.beginPath(); ctx.moveTo(x+rr,y); ctx.arcTo(x+w,y,x+w,y+h,rr); ctx.arcTo(x+w,y+h,x,y+h,rr); ctx.arcTo(x,y+h,x,y,rr); ctx.arcTo(x,y,x+w,y,rr); ctx.closePath(); }
+  function drawPopulation(result){
+    const canvas=$('popChart'); const {ctx,w,h}=prepCanvas(canvas); clear(ctx,w,h);
+    const rows=result.ranking, max=Math.max(...rows.map(r=>r.pop),.01); const left=128,right=18,top=14,rowH=(h-28)/rows.length;
+    ctx.font='13px system-ui'; ctx.textBaseline='middle';
+    rows.forEach((r,i)=>{ const y=top+i*rowH+rowH/2,bw=(w-left-right)*(r.pop/max); ctx.fillStyle='rgba(255,255,255,.13)'; roundRect(ctx,left,y-rowH*.25,w-left-right,rowH*.5,9); ctx.fill(); ctx.fillStyle=r.color; roundRect(ctx,left,y-rowH*.25,bw,rowH*.5,9); ctx.fill(); ctx.fillStyle='#eaf1ff'; ctx.textAlign='right'; ctx.fillText(r.name,left-10,y); ctx.textAlign='left'; ctx.fillStyle='#fff'; ctx.font='bold 13px system-ui'; ctx.fillText(pct(r.pop),left+bw+8,y); ctx.font='13px system-ui'; });
+    $('popLegend').innerHTML = rows.map(r=>`<span class="legendItem"><i class="swatch" style="background:${r.color}"></i>${r.name}</span>`).join('');
+  }
+  function drawTrust(result){
+    const canvas=$('trustChart'); const {ctx,w,h}=prepCanvas(canvas); clear(ctx,w,h); const data=result.history.map(g=>g.trust); const pad=27;
+    ctx.strokeStyle='rgba(255,255,255,.16)'; ctx.lineWidth=1; for(let i=0;i<=4;i++){ const y=pad+(h-2*pad)*i/4; ctx.beginPath(); ctx.moveTo(pad,y); ctx.lineTo(w-pad,y); ctx.stroke(); }
+    ctx.beginPath(); data.forEach((v,i)=>{ const x=pad+(w-2*pad)*(i/Math.max(1,data.length-1)); const y=h-pad-(h-2*pad)*v; if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); }); ctx.strokeStyle='#48e39d'; ctx.lineWidth=4; ctx.stroke();
+    const last=data[data.length-1]||0; ctx.fillStyle='#f5f8ff'; ctx.font='bold 15px system-ui'; ctx.textAlign='right'; ctx.fillText('End trust: '+pct(last),w-pad,pad+8); ctx.fillStyle='rgba(255,255,255,.72)'; ctx.font='12px system-ui'; ctx.fillText('0%',pad+10,h-pad+16); ctx.fillText('100%',pad+24,pad-8);
+  }
+  function drawScores(result){
+    const canvas=$('scoreChart'); const {ctx,w,h}=prepCanvas(canvas); clear(ctx,w,h); const rows=result.ranking.slice().sort((a,b)=>b.avg-a.avg); const min=Math.min(...rows.map(r=>r.avg),0), max=Math.max(...rows.map(r=>r.avg),1); const left=130,right=46,top=14,rowH=(h-28)/rows.length; const zeroX=left+(w-left-right)*((0-min)/(max-min||1));
+    ctx.strokeStyle='rgba(255,255,255,.24)'; ctx.beginPath(); ctx.moveTo(zeroX,8); ctx.lineTo(zeroX,h-8); ctx.stroke();
+    ctx.font='13px system-ui'; ctx.textBaseline='middle'; rows.forEach((r,i)=>{ const y=top+i*rowH+rowH/2; const x=left+(w-left-right)*((Math.min(0,r.avg)-min)/(max-min||1)); const x2=left+(w-left-right)*((r.avg-min)/(max-min||1)); const bw=Math.abs(x2-zeroX); ctx.fillStyle=r.color; roundRect(ctx,Math.min(zeroX,x2),y-rowH*.25,Math.max(3,bw),rowH*.5,9); ctx.fill(); ctx.fillStyle='#eaf1ff'; ctx.textAlign='right'; ctx.fillText(r.name,left-10,y); ctx.textAlign='left'; ctx.font='bold 13px system-ui'; ctx.fillText(fmt(r.avg,2),Math.max(x2,zeroX)+8,y); ctx.font='13px system-ui'; });
+    $('scoreLegend').innerHTML = rows.map(r=>`<span class="legendItem"><i class="swatch" style="background:${r.color}"></i>${r.name}</span>`).join('');
+  }
+  function drawTable(result){
+    const rows=result.ranking.map((r,i)=>`<tr><td>${i+1}</td><td style="color:${r.color}">${r.name}</td><td>${pct(r.pop)}</td><td>${fmt(r.avg,2)}</td><td>${fmt(r.quick,2)}</td></tr>`).join('');
+    $('tableBox').innerHTML = `<table class="plainTable"><thead><tr><th>Rank</th><th>Behaviour</th><th>Final population</th><th>Final score</th><th>Early score</th></tr></thead><tbody>${rows}</tbody></table>`;
+  }
+
+  $('rerollBtn').addEventListener('click',()=>{ roll++; scheduleRun('repeat simulation'); });
+  $('resetBtn').addEventListener('click',()=>applyScenario('friendship'));
+  $('randomBtn').addEventListener('click',randomWorld);
+  $('advancedBtn').addEventListener('click',()=>{ root.classList.toggle('showAdvanced'); $('advancedBtn').textContent = root.classList.contains('showAdvanced') ? 'Hide more controls' : 'Show more controls'; if(lastResult) render(lastResult); });
+  Object.entries(inputs).forEach(([key,inp])=>inp.addEventListener('input',()=>{ selectedScenario=''; buildScenarios(); scheduleRun(key); }));
+  window.addEventListener('resize',()=>{ if(lastResult) render(lastResult); });
+  buildScenarios(); buildChecks(); buildMix(); updateLabels(); runLive();
+})();
+</script>
+</body>
+</html>
